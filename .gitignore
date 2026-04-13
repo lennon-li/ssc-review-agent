@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+ENV/
+env/
+.env
+
+# R
+.Rhistory
+.RData
+.Ruserdata
+.Rproj.user/
+
+# Project Specific
+outputs/
+logs/
+shiny_app/temp/
+applications_raw/*
+!applications_raw/.gitkeep

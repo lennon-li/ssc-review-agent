@@ -1,0 +1,13 @@
+criteria:
+  - id: statistical_training
+    name: Statistical Training
+    description: Degree or specialized training in statistics or related fields.
+  - id: professional_experience
+    name: Professional Experience
+    description: Relevant work history in data analysis or research.
+  - id: communication
+    name: Communication
+    description: Ability to explain complex topics clearly as evidenced by materials.
+  - id: overall_fit
+    name: Overall Fit
+    description: General assessment of the candidate against the role requirements.
