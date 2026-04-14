@@ -18,5 +18,14 @@ env/
 outputs/
 logs/
 shiny_app/temp/
-applications_raw/*
+TempTest/
+
+# Sensitive Applicant/Reviewer Data
+applications_raw/
+applications_text/
+examples/
+reference/universities/
 !applications_raw/.gitkeep
+!applications_text/.gitkeep
+!examples/.gitkeep
+!reference/universities/.gitkeep
