@@ -15,6 +15,8 @@ Build the local end-to-end prototype first.
 ## Current Stage
 - Local project structure exists
 - Organizing instructions, templates, guidelines, and examples
+- **NEW:** PDF text extraction support via `extract_pdf.py` (using `pypdf`)
+- **NEW:** Gemini API integration via `GeminiEvaluator` (using `google-genai`)
 - **CRITICAL:** Do not add cloud deployment code yet
 - **CRITICAL:** Do not add Google Drive integration yet
 - **CRITICAL:** Do not add a database yet

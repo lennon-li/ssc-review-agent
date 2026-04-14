@@ -41,6 +41,9 @@ class MockEvaluator(BaseEvaluator):
 def get_evaluator(evaluator_type: str = "mock") -> BaseEvaluator:
     if evaluator_type == "mock":
         return MockEvaluator()
+    elif evaluator_type == "gemini":
+        from .gemini_evaluator import GeminiEvaluator
+        return GeminiEvaluator()
     # Add other evaluators (e.g., VertexEvaluator) here later
     raise ValueError(f"Unknown evaluator type: {evaluator_type}")
 
