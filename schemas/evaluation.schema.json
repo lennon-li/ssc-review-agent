@@ -5,6 +5,10 @@
   "properties": {
     "applicant_id": { "type": "string" },
     "overall_summary": { "type": "string" },
+    "ready_for_human_review": { 
+      "type": "boolean",
+      "description": "True if the AI is confident in its overall assessment and no critical data is missing."
+    },
     "criteria": {
       "type": "array",
       "items": {
@@ -14,14 +18,31 @@
           "criterion_name": { "type": "string" },
           "recommended_rating": { "type": "string" },
           "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
-          "supporting_evidence": { "type": "string" },
-          "missing_evidence": { "type": "string" },
+          "supporting_evidence": { 
+            "type": "string",
+            "description": "Direct quotes or specific facts found in the application materials."
+          },
+          "missing_evidence": { 
+            "type": "string",
+            "description": "Specific information required by the rubric that was not found."
+          },
+          "needs_human_attention": {
+            "type": "boolean",
+            "description": "Set to true if there is conflicting evidence, high uncertainty, or an unusual edge case."
+          },
           "draft_comment": { "type": "string" },
           "reviewer_override": { "type": "string", "default": "" }
         },
-        "required": ["criterion_id", "criterion_name", "recommended_rating", "confidence", "supporting_evidence"]
+        "required": [
+          "criterion_id", 
+          "criterion_name", 
+          "recommended_rating", 
+          "confidence", 
+          "supporting_evidence",
+          "needs_human_attention"
+        ]
       }
     }
   },
-  "required": ["applicant_id", "overall_summary", "criteria"]
+  "required": ["applicant_id", "overall_summary", "criteria", "ready_for_human_review"]
 }

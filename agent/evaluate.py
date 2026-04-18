@@ -13,9 +13,6 @@ class MockEvaluator(BaseEvaluator):
         """
         A mock evaluator that returns a deterministic evaluation structure.
         """
-        # In a real scenario, this is where you might call an LLM using the prompt from prompts.py
-        # prompt = build_evaluation_prompt(application_text, rubric, instructions, schema)
-        
         criteria_list = rubric.get("criteria", [])
         evaluations = []
 
@@ -27,6 +24,7 @@ class MockEvaluator(BaseEvaluator):
                 "confidence": 0.85,
                 "supporting_evidence": f"Mock evidence found in text for {criterion['name']}.",
                 "missing_evidence": "None noted in mock mode.",
+                "needs_human_attention": False,
                 "draft_comment": f"The candidate shows high proficiency in {criterion['name']}.",
                 "reviewer_override": ""
             })
@@ -34,17 +32,16 @@ class MockEvaluator(BaseEvaluator):
         return {
             "applicant_id": "applicant_001",
             "overall_summary": "Overall, the mock candidate is a strong fit for the position.",
+            "ready_for_human_review": True,
             "criteria": evaluations
         }
 
 # Function to get the configured evaluator
-def get_evaluator(evaluator_type: str = "mock") -> BaseEvaluator:
-    if evaluator_type == "mock":
-        return MockEvaluator()
-    elif evaluator_type == "gemini":
-        from .gemini_evaluator import GeminiEvaluator
-        return GeminiEvaluator()
-    # Add other evaluators (e.g., VertexEvaluator) here later
+def get_evaluator(evaluator_type: str = "vertex") -> BaseEvaluator:
+    if evaluator_type == "vertex":
+        from .vertex_evaluator import VertexEvaluator
+        return VertexEvaluator()
+    # Add other evaluators here later
     raise ValueError(f"Unknown evaluator type: {evaluator_type}")
 
 # Legacy support for main.py (can be removed once main.py is updated)

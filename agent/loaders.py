@@ -28,3 +28,38 @@ def load_json_schema(file_path: str) -> dict:
         raise FileNotFoundError(f"File not found: {file_path}")
     with open(path, 'r', encoding='utf-8') as f:
         return json.load(f)
+
+def extract_all_from_folder(folder_path: str) -> str:
+    """
+    Extracts text from all supported files in a folder and concatenates them.
+    Supports PDF, DOCX, and plain text.
+    """
+    path = Path(folder_path)
+    if not path.exists() or not path.is_dir():
+        return ""
+        
+    combined_text = []
+    for file_path in sorted(path.iterdir()):
+        if not file_path.is_file():
+            continue
+            
+        combined_text.append(f"\n--- Document: {file_path.name} ---\n")
+        ext = file_path.suffix.lower()
+        
+        try:
+            if ext == ".pdf":
+                from pypdf import PdfReader
+                reader = PdfReader(file_path)
+                for page in reader.pages:
+                    combined_text.append(page.extract_text() or "")
+            elif ext == ".docx":
+                import docx
+                doc = docx.Document(file_path)
+                combined_text.append("\n".join([p.text for p in doc.paragraphs]))
+            elif ext in [".txt", ".md"]:
+                with open(file_path, "r", encoding="utf-8") as f:
+                    combined_text.append(f.read())
+        except Exception as e:
+            combined_text.append(f"[Error extracting {file_path.name}: {e}]")
+            
+    return "\n".join(combined_text)

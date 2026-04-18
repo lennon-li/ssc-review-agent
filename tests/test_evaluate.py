@@ -16,6 +16,12 @@ class TestEvaluate(unittest.TestCase):
         self.assertEqual(result["applicant_id"], "applicant_001")
         self.assertEqual(len(result["criteria"]), 2)
         self.assertEqual(result["criteria"][0]["criterion_id"], "crit1")
+        
+        # New reliability fields
+        self.assertIn("ready_for_human_review", result)
+        self.assertTrue(isinstance(result["ready_for_human_review"], bool))
+        self.assertIn("needs_human_attention", result["criteria"][0])
+        self.assertTrue(isinstance(result["criteria"][0]["needs_human_attention"], bool))
 
 if __name__ == "__main__":
     unittest.main()

@@ -31,14 +31,16 @@ class GeminiEvaluator(BaseEvaluator):
         schema = {
             "applicant_id": "string",
             "overall_summary": "string",
+            "ready_for_human_review": "boolean",
             "criteria": [
                 {
                     "criterion_id": "string",
                     "criterion_name": "string",
                     "recommended_rating": "string",
                     "confidence": "number (0-1)",
-                    "supporting_evidence": "string",
-                    "missing_evidence": "string",
+                    "supporting_evidence": "string (quotes or facts from text)",
+                    "missing_evidence": "string (what was required but not found)",
+                    "needs_human_attention": "boolean",
                     "draft_comment": "string"
                 }
             ]
