@@ -103,25 +103,9 @@ class VertexEvaluator(BaseEvaluator):
                 return result
                 
             except Exception as parse_error:
-                logger.warning(f"Failed to parse JSON from Discovery Engine. Falling back to structured default. Error: {parse_error}")
-                # Provide a fallback structure so the Shiny app doesn't crash if the engine returns plain text
-                return {
-                    "applicant_id": "Parsing Error / Empty Result",
-                    "overall_summary": answer_text,
-                    "ready_for_human_review": False,
-                    "course_checklist": [],
-                    "criteria": [
-                        {
-                            "criterion_id": "error", "criterion_name": "Review Manual Summary",
-                            "recommended_rating": "N/A", "confidence": 0.0,
-                            "supporting_evidence": "The Google Cloud App Builder returned a text summary instead of structured JSON.",
-                            "missing_evidence": "Please review the overall summary above.",
-                            "needs_human_attention": True,
-                            "draft_comment": "Review manual text."
-                        }
-                    ]
-                }
-            
+                logger.error(f"Failed to parse JSON from Discovery Engine. Raw text: {answer_text}")
+                raise ValueError("The AI model failed to format its response correctly (or returned an empty summary). Please click Run again.")
+
         except Exception as e:
-            logger.error(f"Discovery Engine evaluation failed: {e}")
+            logger.error(f"❌ Discovery Engine evaluation failed: {e}")
             raise e

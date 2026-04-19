@@ -1,6 +1,5 @@
 #!/bin/bash
 set -e
-
-# Run the Shiny app
-# We use the cloud-optimized app version
-Rscript -e "shiny::runApp('shiny_app/app_cloud.R', host = '0.0.0.0', port = 8080)"
+PORT="${PORT:-8080}"
+echo "Starting SSC Review Agent API on port $PORT..."
+exec python -m uvicorn agent.api:app --host 0.0.0.0 --port "$PORT" --workers 1

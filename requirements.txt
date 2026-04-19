@@ -6,3 +6,6 @@ python-docx
 PyYAML
 python-dotenv
 numpy
+fastapi
+uvicorn
+python-multipart
