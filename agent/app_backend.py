@@ -153,9 +153,11 @@ def run_folder_evaluation(folder_path: str, evaluator_type: str = "vertex") -> D
     rubric_path = base_dir / "criteria" / "rubric.yml"
     rubric = load_yaml(str(rubric_path))
     
-    instructions_path = base_dir / "instructions" / "reviewer_instructions.md"
+    instructions_path = base_dir / "skills" / "ssc-evaluator" / "SKILL.md"
     if not instructions_path.exists():
-        instructions_path = base_dir / "guidelines" / "Reviewer Instructions AStat.md"
+        instructions_path = base_dir / "instructions" / "reviewer_instructions.md"
+        if not instructions_path.exists():
+            instructions_path = base_dir / "guidelines" / "Reviewer Instructions AStat.md"
     
     instructions = load_text(str(instructions_path))
     

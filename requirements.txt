@@ -1,5 +1,6 @@
-google-genai
-google-cloud-discoveryengine
+google-genai>=1.0.0
+google-cloud-discoveryengine>=0.18.0
+google-cloud-aiplatform>=1.70.0
 pypdf
 python-docx
 PyYAML
