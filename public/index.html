@@ -1,89 +1,143 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Welcome to Firebase Hosting</title>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SSC Accreditation Review Assistant</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="container">
+            <span class="navbar-brand">SSC Accreditation Review Assistant</span>
+            <div class="nav-links">
+                <button id="nav-setup" class="active">1. Setup</button>
+                <button id="nav-review" disabled>2. Review & Report</button>
+            </div>
+        </div>
+    </nav>
 
-    <!-- update the version number as needed -->
-    <script defer src="/__/firebase/12.12.0/firebase-app-compat.js"></script>
-    <!-- include only the Firebase features as you need -->
-    <script defer src="/__/firebase/12.12.0/firebase-auth-compat.js"></script>
-    <script defer src="/__/firebase/12.12.0/firebase-database-compat.js"></script>
-    <script defer src="/__/firebase/12.12.0/firebase-firestore-compat.js"></script>
-    <script defer src="/__/firebase/12.12.0/firebase-functions-compat.js"></script>
-    <script defer src="/__/firebase/12.12.0/firebase-messaging-compat.js"></script>
-    <script defer src="/__/firebase/12.12.0/firebase-storage-compat.js"></script>
-    <script defer src="/__/firebase/12.12.0/firebase-analytics-compat.js"></script>
-    <script defer src="/__/firebase/12.12.0/firebase-remote-config-compat.js"></script>
-    <script defer src="/__/firebase/12.12.0/firebase-performance-compat.js"></script>
-    <!-- 
-      initialize the SDK after all desired features are loaded, set useEmulator to false
-      to avoid connecting the SDK to running emulators.
-    -->
-    <script defer src="/__/firebase/init.js?useEmulator=true"></script>
+    <main class="container">
+        <!-- Setup Tab -->
+        <section id="tab-setup" class="tab-content active">
+            <div class="setup-layout">
+                <div class="setup-left">
+                    <div class="alert-info">
+                        <strong>ℹ️ How to use the SSC Review Agent:</strong>
+                        <ul>
+                            <li>Upload all applicant files (PDF, DOCX, TXT, Images) at once using the box below.</li>
+                            <li>Click <strong>Run AI Assessment</strong>. The AI will evaluate the files against the official SSC Guidelines.</li>
+                            <li><strong>Note on AI Errors:</strong> The evaluation requires massive processing power. Occasionally, the AI may time out or fail to format its response perfectly. <strong>If you see an error, simply click "Run AI Assessment" again.</strong> A retry usually resolves it.</li>
+                        </ul>
+                    </div>
+                    <div class="card">
+                        <div class="card-header">Application Materials</div>
+                        <div class="card-body">
+                            <div class="upload-container">
+                                <input type="file" id="file-input" multiple accept=".pdf,.docx,.txt,.jpg,.png,.jpeg" hidden>
+                                <div class="upload-box" id="upload-box">
+                                    <i class="fa-solid fa-cloud-upload-alt fa-3x"></i>
+                                    <p>Drag & Drop applicant files here or <span>Browse</span></p>
+                                </div>
+                                <div id="file-list" class="file-list"></div>
+                                <button id="btn-run" class="btn btn-primary" style="width: 100%;" disabled>Run AI Assessment (App Builder)</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="setup-right">
+                    <div class="card h-100">
+                        <div class="card-header">Activity Log</div>
+                        <div class="card-body log-body">
+                            <div id="activity-log" class="terminal-log h-100">
+                                System Ready. Pure Python Backend Initialized. Please upload application files.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
 
-    <style media="screen">
-      body { background: #ECEFF1; color: rgba(0,0,0,0.87); font-family: Roboto, Helvetica, Arial, sans-serif; margin: 0; padding: 0; }
-      #message { background: white; max-width: 360px; margin: 100px auto 16px; padding: 32px 24px; border-radius: 3px; }
-      #message h2 { color: #ffa100; font-weight: bold; font-size: 16px; margin: 0 0 8px; }
-      #message h1 { font-size: 22px; font-weight: 300; color: rgba(0,0,0,0.6); margin: 0 0 16px;}
-      #message p { line-height: 140%; margin: 16px 0 24px; font-size: 14px; }
-      #message a { display: block; text-align: center; background: #039be5; text-transform: uppercase; text-decoration: none; color: white; padding: 16px; border-radius: 4px; }
-      #message, #message a { box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24); }
-      #load { color: rgba(0,0,0,0.4); text-align: center; font-size: 13px; }
-      @media (max-width: 600px) {
-        body, #message { margin-top: 0; background: white; box-shadow: none; }
-        body { border-top: 16px solid #ffa100; }
-      }
-    </style>
-  </head>
-  <body>
-    <div id="message">
-      <h2>Welcome</h2>
-      <h1>Firebase Hosting Setup Complete</h1>
-      <p>You're seeing this because you've successfully setup Firebase Hosting. Now it's time to go build something extraordinary!</p>
-      <a target="_blank" href="https://firebase.google.com/docs/hosting/">Open Hosting Documentation</a>
+        <!-- Review Tab -->
+        <section id="tab-review" class="tab-content">
+            <div class="sidebar-layout">
+                <aside class="sidebar">
+                    <h3>Export Report</h3>
+                    <button id="export-html" class="btn btn-info w-100 mb-10"><i class="fa-solid fa-file-export"></i> Export HTML</button>
+                    <button id="export-docx" class="btn btn-info w-100 mb-10"><i class="fa-solid fa-file-word"></i> Export DOCX</button>
+                    <button id="export-md" class="btn btn-outline-info w-100"><i class="fa-solid fa-file-code"></i> Export Markdown</button>
+                    <hr>
+                    <div class="filter-box">
+                        <label>
+                            <input type="checkbox" id="filter-attention"> Show Only Flagged Items
+                        </label>
+                    </div>
+                </aside>
+
+                <div class="main-report">
+                    <div id="applicant-profile" class="profile-card">
+                        <div id="applicant-photo" class="profile-img">
+                            <i class="fa-solid fa-user fa-2x"></i>
+                        </div>
+                        <div class="profile-info">
+                            <h2 id="applicant-name">Applicant Name</h2>
+                            <div id="consensus-badge" class="badge">Consensus Status</div>
+                        </div>
+                    </div>
+
+                    <div class="results-tabs">
+                        <div class="tab-nav">
+                            <button data-target="report-summary" class="active">Summary</button>
+                            <button data-target="report-courses">Courses</button>
+                            <button data-target="report-criteria">Criteria</button>
+                            <button data-target="report-preview">Final Report Preview</button>
+                        </div>
+
+                        <div id="report-summary" class="report-panel active">
+                            <h3>Executive Summary</h3>
+                            <div id="summary-text" class="summary-box"></div>
+                        </div>
+
+                        <div id="report-courses" class="report-panel">
+                            <h3>Course Checklist</h3>
+                            <div class="table-container">
+                                <table id="courses-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Module</th>
+                                            <th>Course Code</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div id="report-criteria" class="report-panel">
+                            <h3>Criteria Assessment</h3>
+                            <div id="criteria-list"></div>
+                        </div>
+
+                        <div id="report-preview" class="report-panel">
+                            <h3>Final Report Preview</h3>
+                            <div id="preview-container" class="preview-box"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <div id="loading-overlay" class="overlay hidden">
+        <div class="loader">
+            <div class="spinner"></div>
+            <p id="loader-text" class="loader-text">Evaluating with Vertex AI App Builder...</p>
+        </div>
     </div>
-    <p id="load">Firebase SDK Loading&hellip;</p>
 
-    <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        const loadEl = document.querySelector('#load');
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-        // // The Firebase SDK is initialized and available here!
-        //
-        // firebase.auth().onAuthStateChanged(user => { });
-        // firebase.database().ref('/path/to/ref').on('value', snapshot => { });
-        // firebase.firestore().doc('/foo/bar').get().then(() => { });
-        // firebase.functions().httpsCallable('yourFunction')().then(() => { });
-        // firebase.messaging().requestPermission().then(() => { });
-        // firebase.storage().ref('/path/to/ref').getDownloadURL().then(() => { });
-        // firebase.analytics(); // call to activate
-        // firebase.analytics().logEvent('tutorial_completed');
-        // firebase.performance(); // call to activate
-        //
-        // // 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
-
-        try {
-          let app = firebase.app();
-          let features = [
-            'auth', 
-            'database', 
-            'firestore',
-            'functions',
-            'messaging', 
-            'storage', 
-            'analytics', 
-            'remoteConfig',
-            'performance',
-          ].filter(feature => typeof app[feature] === 'function');
-          loadEl.textContent = `Firebase SDK loaded with ${features.join(', ')}`;
-        } catch (e) {
-          console.error(e);
-          loadEl.textContent = 'Error loading the Firebase SDK, check the console.';
-        }
-      });
-    </script>
-  </body>
+    <script src="app.js"></script>
+</body>
 </html>
