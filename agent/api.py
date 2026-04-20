@@ -12,21 +12,21 @@ from pydantic import BaseModel
 def generate_html_report(result: Dict[str, Any]) -> str:
     """Generates a styled HTML report from the evaluation result."""
     html = f"""
-    <div style="font-family: 'Open Sans', sans-serif; padding: 20px; color: #333;">
-        <h1 style="color: #003366; border-bottom: 2px solid #003366; padding-bottom: 10px;">Accreditation Review: {result.get('applicant_id', 'Unknown')}</h1>
+    <div style="font-family: 'Open Sans', sans-serif; padding: 20px; color: #e0e0e0; background-color: #121212;">
+        <h1 style="color: #E31837; border-bottom: 2px solid #E31837; padding-bottom: 10px;">Accreditation Review: {result.get('applicant_id', 'Unknown')}</h1>
         
-        <h2 style="color: #003366;">Executive Summary</h2>
-        <div style="background: #f8f9fa; padding: 15px; border-left: 5px solid #17a2b8; margin-bottom: 20px;">
+        <h2 style="color: #E31837;">Executive Summary</h2>
+        <div style="background: #1a1a1a; padding: 15px; border-left: 5px solid #005696; margin-bottom: 20px; color: #e0e0e0;">
             {result.get('overall_summary', 'No summary provided.')}
         </div>
         
-        <h2 style="color: #003366;">Course Checklist</h2>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <h2 style="color: #E31837;">Course Checklist</h2>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px; color: #e0e0e0;">
             <thead>
-                <tr style="background: #f8f9fa; text-align: left;">
-                    <th style="padding: 10px; border: 1px solid #dee2e6;">Module</th>
-                    <th style="padding: 10px; border: 1px solid #dee2e6;">Course Code</th>
-                    <th style="padding: 10px; border: 1px solid #dee2e6;">Status</th>
+                <tr style="background: #1a1a1a; text-align: left;">
+                    <th style="padding: 10px; border: 1px solid #333; color: #E31837;">Module</th>
+                    <th style="padding: 10px; border: 1px solid #333; color: #E31837;">Course Code</th>
+                    <th style="padding: 10px; border: 1px solid #333; color: #E31837;">Status</th>
                 </tr>
             </thead>
             <tbody>
@@ -36,9 +36,9 @@ def generate_html_report(result: Dict[str, Any]) -> str:
         status = "✅ Satisfied" if item.get('is_satisfied') else "❌ Missing/Fail"
         html += f"""
                 <tr>
-                    <td style="padding: 10px; border: 1px solid #dee2e6;">{item.get('module')}</td>
-                    <td style="padding: 10px; border: 1px solid #dee2e6;">{item.get('course_code')}</td>
-                    <td style="padding: 10px; border: 1px solid #dee2e6;">{status}</td>
+                    <td style="padding: 10px; border: 1px solid #333;">{item.get('module')}</td>
+                    <td style="padding: 10px; border: 1px solid #333;">{item.get('course_code')}</td>
+                    <td style="padding: 10px; border: 1px solid #333;">{status}</td>
                 </tr>
         """
         
@@ -46,19 +46,19 @@ def generate_html_report(result: Dict[str, Any]) -> str:
             </tbody>
         </table>
         
-        <h2 style="color: #003366;">Detailed Criterion Assessment</h2>
+        <h2 style="color: #E31837;">Detailed Criterion Assessment</h2>
     """
     
     for crit in result.get('criteria', []):
         status = "⚠️ Needs Attention" if crit.get('needs_human_attention') else "✅ Satisfied"
         color = "#dc3545" if crit.get('needs_human_attention') else "#28a745"
         html += f"""
-        <div style="margin-bottom: 20px; border: 1px solid #eee; border-radius: 4px; padding: 15px;">
+        <div style="margin-bottom: 20px; border: 1px solid #333; border-radius: 4px; padding: 15px; background-color: #1a1a1a;">
             <div style="display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 10px;">
-                <span style="color: #003366;">{crit.get('criterion_name')}</span>
+                <span style="color: #E31837;">{crit.get('criterion_name')}</span>
                 <span style="color: {color};">{status}</span>
             </div>
-            <p style="font-size: 0.95em;">{crit.get('supporting_evidence', 'No evidence provided.')}</p>
+            <p style="font-size: 0.95em; color: #e0e0e0;">{crit.get('supporting_evidence', 'No evidence provided.')}</p>
         </div>
         """
         

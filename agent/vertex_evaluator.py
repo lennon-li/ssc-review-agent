@@ -1,7 +1,9 @@
+import json
+import re
 from typing import Dict, Any
 import os
-import json
 from google.cloud import discoveryengine_v1 as discoveryengine
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from .evaluate import BaseEvaluator
 from .prompts import build_evaluation_prompt
@@ -11,12 +13,9 @@ class VertexEvaluator(BaseEvaluator):
     def __init__(self, model_id: str = None, project_id: str = None, location: str = None):
         """
         Initializes the Discovery Engine Evaluator.
-        Targets the correct multi-region 'us' endpoint and your newly created Enterprise Engine (App).
         """
         self.project_id = project_id or os.getenv("PROJECT_ID", "project-9486ad0d-3ebc-4395-a7c")
         self.location = "us" 
-        
-        # Using the exact Engine ID you just created and linked to the Enterprise App
         self.engine_id = "ssc-review-app_1776607831356"
         
         endpoint = f"{self.location}-discoveryengine.googleapis.com"
@@ -25,14 +24,24 @@ class VertexEvaluator(BaseEvaluator):
         self.client = discoveryengine.ConversationalSearchServiceClient(client_options=client_options)
         logger.info(f"Initialized Discovery Engine Evaluator at {endpoint} for project={self.project_id}, location={self.location}")
 
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=4, max=10),
+        retry=retry_if_exception_type((ValueError, Exception)),
+        before_sleep=lambda retry_state: logger.warning(f"Retrying evaluation (attempt {retry_state.attempt_number})...")
+    )
     def evaluate(self, application_text: str, rubric: Dict[str, Any], instructions: str) -> Dict[str, Any]:
         """
-        Grounded evaluation using Discovery Engine AnswerQuery.
-        This uses your App Builder credits (AI Application SKU) because the Engine is Enterprise tier.
+        Grounded evaluation using Discovery Engine AnswerQuery with automatic retries.
         """
+        # Trim application text if it's excessively long to improve AI focus and reduce summary failures
+        # 140k characters is too large for AnswerQuery summary generation
+        if len(application_text) > 40000:
+            logger.info(f"Trimming application text from {len(application_text)} to 40000 chars.")
+            application_text = application_text[:40000]
+
         serving_config = f"projects/{self.project_id}/locations/{self.location}/collections/default_collection/engines/{self.engine_id}/servingConfigs/default_serving_config"
 
-        # The exact schema required by the Shiny frontend
         schema = {
             "applicant_id": "string",
             "overall_summary": "string",
@@ -54,16 +63,12 @@ class VertexEvaluator(BaseEvaluator):
             ]
         }
 
-        # Build the full context using your existing prompt builder
         full_context = build_evaluation_prompt(application_text, rubric, instructions, schema)
+        preamble = f"You are an expert SSC Accreditation Reviewer. Use the retrieved SSC guidelines from your Data Store to evaluate this application. Return ONLY valid JSON. APPLICATION DATA:\n\n{full_context}"
         
-        # We put the massive application text and rubric inside the preamble (no strict length limit)
-        preamble = f"You are an expert SSC Accreditation Reviewer. Use the retrieved SSC guidelines from your Data Store to evaluate this application. Here is the application data and instructions:\n\n{full_context}"
-        
-        # The query is strictly under 2000 chars and enforces the exact JSON schema
-        query_text = f"Evaluate the applicant based on the preamble. You MUST return ONLY a valid JSON object strictly matching this schema, filling out the arrays completely based on the applicant's data: {json.dumps(schema)}. Ensure all arrays are properly formatted with square brackets even if empty."
+        query_text = f"Evaluate the applicant. Return ONLY a valid JSON object matching this schema: {json.dumps(schema)}"
 
-        logger.info(f"Querying Discovery Engine AnswerQuery on Engine {self.engine_id} (Query length: {len(query_text)}, Preamble length: {len(preamble)})")
+        logger.info(f"Querying Discovery Engine (Query: {len(query_text)}, Preamble: {len(preamble)})")
         
         try:
             request = discoveryengine.AnswerQueryRequest(
@@ -85,27 +90,28 @@ class VertexEvaluator(BaseEvaluator):
             response = self.client.answer_query(request)
             answer_text = response.answer.answer_text
             
-            # Robust JSON parsing
+            if not answer_text or "could not be generated" in answer_text:
+                logger.error(f"Discovery Engine failed to generate summary. Raw response: {answer_text}")
+                raise ValueError("AI failed to generate a summary. This often happens if the input is too complex.")
+
+            # Clean up the response text to find JSON
+            json_match = re.search(r'\{.*\}', answer_text, re.DOTALL)
+            if json_match:
+                json_str = json_match.group(0)
+            else:
+                json_str = answer_text
+
             try:
-                if "```json" in answer_text:
-                    answer_text = answer_text.split("```json")[1].split("```")[0].strip()
-                elif "```" in answer_text:
-                    answer_text = answer_text.split("```")[1].split("```")[0].strip()
-                    
-                result = json.loads(answer_text)
-                
+                result = json.loads(json_str)
                 # Ensure the required arrays exist
-                if "course_checklist" not in result:
-                    result["course_checklist"] = []
-                if "criteria" not in result:
-                    result["criteria"] = []
-                    
+                if "course_checklist" not in result: result["course_checklist"] = []
+                if "criteria" not in result: result["criteria"] = []
                 return result
-                
             except Exception as parse_error:
-                logger.error(f"Failed to parse JSON from Discovery Engine. Raw text: {answer_text}")
-                raise ValueError("The AI model failed to format its response correctly (or returned an empty summary). Please click Run again.")
+                logger.error(f"JSON Parse Error. Raw text snippet: {answer_text[:200]}")
+                raise ValueError("Malformed JSON returned from AI.")
 
         except Exception as e:
-            logger.error(f"❌ Discovery Engine evaluation failed: {e}")
+            if isinstance(e, ValueError): raise e
+            logger.error(f"❌ API Error: {e}")
             raise e

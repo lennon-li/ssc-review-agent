@@ -31,7 +31,15 @@ This document captures the valuable experiences, architectural decisions, and ha
 **The Reality:** A Data Store is just a storage box. To use LLMs and consume "AI Application" credits, you must create a **Search App (Engine)** that sits on top of the Data Store. 
 **The Lesson:** You must toggle **"Enterprise Edition"** and **"Advanced LLM features"** to ON when creating the App in the Google Cloud Console. Your code must then query the *Engine ID*, not the Data Store ID.
 
-## 6. Prompt Engineering: Don't Compress JSON Schemas
-**What happened:** In an attempt to save tokens, the prompt told the AI to return `{"criteria": []}`. The AI returned empty arrays and hallucinated completely different dictionary keys, crashing the R Shiny UI which expected specific keys.
-**The Reality:** LLMs take instructions literally. If you give it an empty array with no keys, it will invent its own structure.
-**The Lesson:** You must pass the *exact, fully fleshed-out JSON schema* (e.g., `{"criteria": [{"criterion_name": "string", "supporting_evidence": "string"}]}`) in the prompt. Never sacrifice schema definition to save prompt length.
+## 7. Deployment & Infrastructure Stability
+**What happened:** Encountered "Container import failed" on Cloud Run despite a successful build.
+**The Reality:** This usually indicates an IAM permission gap where the Cloud Run service agent cannot pull the image from Artifact Registry.
+**The Lesson:** Explicitly granting `roles/artifactregistry.reader` to both the Compute Service Account AND the Cloud Run Service Agent (`service-[PROJECT_NUMBER]@serverless-robot-prod.iam.gserviceaccount.com`) is often necessary for cross-repository or custom registry deployments.
+
+## 8. Grounded AI Stability (AnswerQuery)
+**What happened:** 80% failure rate when processing large application files (140k+ characters) due to "summary could not be generated" errors.
+**The Reality:** Trimming input to ~40k characters significantly improves the "Groundedness" success rate for the `AnswerQuery` API. 
+**The Lesson:** 
+1. **Context Trimming:** Prioritize the first 40k characters (where transcripts and CVs usually reside). 
+2. **Silent Retries:** Using the `tenacity` library to automatically retry failed AI calls (up to 3 times) masks minor transient errors and provides a smoother user experience.
+3. **Robust JSON Extraction:** LLMs occasionally add conversational "chatter" even when asked for pure JSON. Using Regex (`re.search(r'\{.*\}', text, re.DOTALL)`) is a mandatory guardrail for production parsing.
