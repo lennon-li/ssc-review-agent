@@ -31,6 +31,10 @@ class GeminiEvaluator(BaseEvaluator):
         schema = {
             "applicant_id": "string",
             "overall_summary": "string",
+            "ai_recommendation": "Accept | Reject | Additional info needed",
+            "ai_flags": [
+                {"topic": "string", "reason": "string", "suggestion": "string"}
+            ],
             "ready_for_human_review": "boolean",
             "criteria": [
                 {

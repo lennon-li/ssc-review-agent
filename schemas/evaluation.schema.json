@@ -5,6 +5,23 @@
   "properties": {
     "applicant_id": { "type": "string" },
     "overall_summary": { "type": "string" },
+    "ai_recommendation": { 
+      "type": "string", 
+      "enum": ["Accept", "Reject", "Additional info needed"],
+      "description": "A suggested decision for the human reviewer based on the initial AI analysis."
+    },
+    "ai_flags": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "topic": { "type": "string" },
+          "reason": { "type": "string", "description": "Why this is flagged (e.g., 'Assumption', 'Uncertainty', 'Conflicting Data')." },
+          "suggestion": { "type": "string", "description": "What the human reviewer should specifically verify." }
+        },
+        "required": ["topic", "reason", "suggestion"]
+      }
+    },
     "ready_for_human_review": { 
       "type": "boolean",
       "description": "True if the AI is confident in its overall assessment and no critical data is missing."

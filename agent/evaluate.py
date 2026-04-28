@@ -32,6 +32,14 @@ class MockEvaluator(BaseEvaluator):
         return {
             "applicant_id": "applicant_001",
             "overall_summary": "Overall, the mock candidate is a strong fit for the position.",
+            "ai_recommendation": "Accept",
+            "ai_flags": [
+                {
+                    "topic": "Professional Experience",
+                    "reason": "Assumption",
+                    "suggestion": "AI assumed the 2-year internship counts towards the 6-year requirement. Human should verify."
+                }
+            ],
             "ready_for_human_review": True,
             "criteria": evaluations
         }

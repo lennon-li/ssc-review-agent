@@ -11,10 +11,34 @@ from pydantic import BaseModel
 
 def generate_html_report(result: Dict[str, Any]) -> str:
     """Generates a styled HTML report from the evaluation result."""
+    
+    # Pre-generate flags HTML to avoid nested f-string issues
+    flags_html = ""
+    if result.get('ai_flags'):
+        flags_list = "".join([f"<li><strong>{f['topic']}:</strong> {f['reason']} - <em>Suggestion: {f['suggestion']}</em></li>" for f in result.get('ai_flags', [])])
+        flags_html = f"""
+        <h2 style="color: #ffc107;">&#9888; AI Flags & Assumptions</h2>
+        <div style="background: #2a2a10; padding: 15px; border-left: 5px solid #ffc107; margin-bottom: 20px;">
+            <ul style="margin: 0; padding-left: 20px; color: #e0e0e0;">
+                {flags_list}
+            </ul>
+        </div>
+        """
+
     html = f"""
     <div style="font-family: 'Open Sans', sans-serif; padding: 20px; color: #e0e0e0; background-color: #121212;">
         <h1 style="color: #E31837; border-bottom: 2px solid #E31837; padding-bottom: 10px;">Accreditation Review: {result.get('applicant_id', 'Unknown')}</h1>
         
+        <div style="background: #1a1a1a; padding: 20px; border: 2px solid #E31837; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+            <h2 style="color: #E31837; margin-top: 0;">Suggested Recommendation for Human Reviewer</h2>
+            <div style="font-size: 2em; font-weight: bold; color: #ffffff; margin: 10px 0;">
+                {result.get('ai_recommendation', 'N/A').upper()}
+            </div>
+            <p style="font-style: italic; color: #e0e0e0;">Note: This is an AI-generated suggestion based on the initial analysis. The final decision remains with the human reviewer.</p>
+        </div>
+
+        {flags_html}
+
         <h2 style="color: #E31837;">Executive Summary</h2>
         <div style="background: #1a1a1a; padding: 15px; border-left: 5px solid #005696; margin-bottom: 20px; color: #e0e0e0;">
             {result.get('overall_summary', 'No summary provided.')}

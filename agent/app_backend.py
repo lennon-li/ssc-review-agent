@@ -44,6 +44,19 @@ def save_reviewed_evaluation(folder_name: str, evaluation_data: Dict[str, Any]) 
 def generate_markdown_report(result: Dict[str, Any]) -> str:
     """Generates a Markdown string from the evaluation result."""
     md = f"# SSC Accreditation Review: {result.get('applicant_id', 'Unknown')}\n\n"
+    
+    recommendation = result.get('ai_recommendation', 'N/A').upper()
+    md += f"## Suggested Recommendation for Human Reviewer\n"
+    md += f"**{recommendation}**\n\n"
+    md += "*Note: This is an AI-generated suggestion based on the initial analysis. The final decision remains with the human reviewer.*\n\n"
+
+    flags = result.get('ai_flags', [])
+    if flags:
+        md += "## [!] AI Flags & Assumptions\n"
+        for flag in flags:
+            md += f"- **{flag['topic']}**: {flag['reason']} (Suggestion: {flag['suggestion']})\n"
+        md += "\n"
+
     md += f"## Executive Summary\n{result.get('overall_summary', 'No summary provided.')}\n\n"
     
     md += "## Course Checklist\n"
@@ -77,6 +90,22 @@ def generate_latex_report(result: Dict[str, Any]) -> str:
     tex += r"\begin{document}" + "\n"
     tex += r"\maketitle" + "\n\n"
     
+    recommendation = result.get('ai_recommendation', 'N/A').upper()
+    tex += r"\section*{Suggested Recommendation for Human Reviewer}" + "\n"
+    tex += r"\textbf{" + recommendation + "}\n\n"
+    tex += r"\textit{Note: This is an AI-generated suggestion based on the initial analysis. The final decision remains with the human reviewer.}\n\n"
+
+    flags = result.get('ai_flags', [])
+    if flags:
+        tex += r"\section*{AI Flags \& Assumptions}" + "\n"
+        tex += r"\begin{itemize}" + "\n"
+        for flag in flags:
+            topic = flag['topic'].replace("_", r"\_").replace("&", r"\&")
+            reason = flag['reason'].replace("_", r"\_").replace("&", r"\&")
+            suggestion = flag['suggestion'].replace("_", r"\_").replace("&", r"\&")
+            tex += f"  \\item \\textbf{{{topic}}}: {reason} -- \\textit{{Suggestion: {suggestion}}}\n"
+        tex += r"\end{itemize}" + "\n\n"
+
     tex += r"\section*{Executive Summary}" + "\n"
     tex += result.get('overall_summary', 'No summary provided.').replace("_", r"\_").replace("&", r"\&") + "\n\n"
     
@@ -107,6 +136,23 @@ def generate_docx_report(result: Dict[str, Any], output_path: str):
     doc = Document()
     doc.add_heading(f"SSC Accreditation Review: {result.get('applicant_id', 'Unknown')}", 0)
     
+    doc.add_heading("Suggested Recommendation for Human Reviewer", level=1)
+    recommendation = result.get('ai_recommendation', 'N/A').upper()
+    p = doc.add_paragraph()
+    run = p.add_run(recommendation)
+    run.bold = True
+    run.font.size = Pt(14)
+    doc.add_paragraph("Note: This is an AI-generated suggestion based on the initial analysis. The final decision remains with the human reviewer.")
+
+    flags = result.get('ai_flags', [])
+    if flags:
+        doc.add_heading("AI Flags & Assumptions", level=1)
+        for flag in flags:
+            p = doc.add_paragraph(style='List Bullet')
+            run = p.add_run(f"{flag['topic']}: ")
+            run.bold = True
+            p.add_run(f"{flag['reason']} (Suggestion: {flag['suggestion']})")
+
     doc.add_heading("Executive Summary", level=1)
     doc.add_paragraph(result.get('overall_summary', 'No summary provided.'))
     
