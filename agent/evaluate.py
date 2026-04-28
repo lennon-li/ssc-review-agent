@@ -41,7 +41,12 @@ def get_evaluator(evaluator_type: str = "vertex") -> BaseEvaluator:
     if evaluator_type == "vertex":
         from .vertex_evaluator import VertexEvaluator
         return VertexEvaluator()
-    # Add other evaluators here later
+    elif evaluator_type == "gemini":
+        from .gemini_evaluator import GeminiEvaluator
+        return GeminiEvaluator()
+    elif evaluator_type == "mock":
+        return MockEvaluator()
+    
     raise ValueError(f"Unknown evaluator type: {evaluator_type}")
 
 # Legacy support for main.py (can be removed once main.py is updated)

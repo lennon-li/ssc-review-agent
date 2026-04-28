@@ -32,16 +32,17 @@ class VertexEvaluator(BaseEvaluator):
     )
     def evaluate(self, application_text: str, rubric: Dict[str, Any], instructions: str) -> Dict[str, Any]:
         """
-        Grounded evaluation using Discovery Engine AnswerQuery with automatic retries.
+        Grounded evaluation using Discovery Engine AnswerQuery.
+        Refactored to minimize prompt stuffing and maximize Search Credit usage.
         """
-        # Trim application text if it's excessively long to improve AI focus and reduce summary failures
-        # 140k characters is too large for AnswerQuery summary generation
+        # Trim application text if it's excessively long
         if len(application_text) > 40000:
-            logger.info(f"Trimming application text from {len(application_text)} to 40000 chars.")
+            logger.info(f"Trimming application text from {len(application_text)} to 40000 chars for focus.")
             application_text = application_text[:40000]
 
         serving_config = f"projects/{self.project_id}/locations/{self.location}/collections/default_collection/engines/{self.engine_id}/servingConfigs/default_serving_config"
 
+        # LEAN SCHEMA for the prompt
         schema = {
             "applicant_id": "string",
             "overall_summary": "string",
@@ -63,12 +64,33 @@ class VertexEvaluator(BaseEvaluator):
             ]
         }
 
-        full_context = build_evaluation_prompt(application_text, rubric, instructions, schema)
-        preamble = f"You are an expert SSC Accreditation Reviewer. Use the retrieved SSC guidelines from your Data Store to evaluate this application. Return ONLY valid JSON. APPLICATION DATA:\n\n{full_context}"
-        
-        query_text = f"Evaluate the applicant. Return ONLY a valid JSON object matching this schema: {json.dumps(schema)}"
+        # 1. BEHAVIORAL INSTRUCTIONS (Preamble)
+        # We focus on the "How" and the "Output Format" here. 
+        # We REMOVE the guideline text itself, as that is what the Data Store is for.
+        behavioral_prompt = (
+            "You are an expert SSC Accreditation Reviewer. Your goal is to provide a reliable, evidence-based assessment.\n\n"
+            "### Core Logic\n"
+            "1. Professional Identity: Distinguish between a Professional Statistician and other fields (Data Science/ML). Focus on study design and classical inference.\n"
+            "2. Education Primacy: The course checklist is the most important component.\n"
+            "3. Grounding: You MUST use the SSC guidelines and approved course lists from your Data Store to verify the courses in the application.\n"
+            "4. Missing Evidence: Explicitly list required information that is not found.\n"
+            "5. Uncertainty: If evidence is contradictory, set 'needs_human_attention' to true.\n\n"
+            "### Output Format\n"
+            f"Return ONLY a valid JSON object matching this schema: {json.dumps(schema)}"
+        )
 
-        logger.info(f"Querying Discovery Engine (Query: {len(query_text)}, Preamble: {len(preamble)})")
+        # 2. CASE DATA (Prompt/Preamble)
+        # We keep the applicant data in the preamble to avoid the 2000-char query limit
+        case_data = f"### APPLICANT MATERIALS\n{application_text}\n\n### EVALUATION RUBRIC\n{json.dumps(rubric)}"
+        
+        preamble = f"{behavioral_prompt}\n\n{case_data}"
+        
+        # 3. THE SEARCH QUERY
+        # We make the query descriptive of what the engine needs to "Find" in the Data Store.
+        # This triggers the Search API properly.
+        query_text = "Search the SSC Accreditation Guidelines and University Course Lists to evaluate if this applicant meets the educational and professional requirements for the designation."
+
+        logger.info(f"Querying Discovery Engine with Lean Preamble (Preamble: {len(preamble)} chars)")
         
         try:
             request = discoveryengine.AnswerQueryRequest(

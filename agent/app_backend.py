@@ -148,18 +148,21 @@ def run_folder_evaluation(folder_path: str, evaluator_type: str = "vertex") -> D
     app_text = extract_all_from_folder(folder_path)
     files_processed = list_files_in_folder(folder_path)
     
-    # 2. Load context (using relative paths from project root)
+    # 2. Load context
     base_dir = Path(__file__).resolve().parent.parent
     rubric_path = base_dir / "criteria" / "rubric.yml"
     rubric = load_yaml(str(rubric_path))
     
-    instructions_path = base_dir / "skills" / "ssc-evaluator" / "SKILL.md"
-    if not instructions_path.exists():
-        instructions_path = base_dir / "instructions" / "reviewer_instructions.md"
+    # Only load instructions if NOT using vertex (to avoid prompt stuffing)
+    instructions = ""
+    instructions_path = None
+    if evaluator_type != "vertex":
+        instructions_path = base_dir / "skills" / "ssc-evaluator" / "SKILL.md"
         if not instructions_path.exists():
-            instructions_path = base_dir / "guidelines" / "Reviewer Instructions AStat.md"
-    
-    instructions = load_text(str(instructions_path))
+            instructions_path = base_dir / "instructions" / "reviewer_instructions.md"
+        
+        if instructions_path.exists():
+            instructions = load_text(str(instructions_path))
     
     # 3. Evaluate
     evaluator = get_evaluator(evaluator_type)
@@ -173,7 +176,7 @@ def run_folder_evaluation(folder_path: str, evaluator_type: str = "vertex") -> D
         "applicant_folder_path": folder_path,
         "files_processed": files_processed,
         "rubric_path": str(rubric_path),
-        "instructions_path": str(instructions_path)
+        "instructions_path": str(instructions_path) if instructions_path else "Retrieved from Data Store"
     }
     
     # 5. Save

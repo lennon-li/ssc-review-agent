@@ -1,0 +1,12 @@
+venv/
+.git/
+.env
+__pycache__/
+*.zip
+*.log
+outputs/
+applications_raw/
+applications_text/
+TempTest/
+University/
+error.png

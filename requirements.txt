@@ -9,3 +9,5 @@ numpy
 fastapi
 uvicorn
 python-multipart
+tenacity
+google-cloud-logging

@@ -36,10 +36,17 @@ This document captures the valuable experiences, architectural decisions, and ha
 **The Reality:** This usually indicates an IAM permission gap where the Cloud Run service agent cannot pull the image from Artifact Registry.
 **The Lesson:** Explicitly granting `roles/artifactregistry.reader` to both the Compute Service Account AND the Cloud Run Service Agent (`service-[PROJECT_NUMBER]@serverless-robot-prod.iam.gserviceaccount.com`) is often necessary for cross-repository or custom registry deployments.
 
-## 8. Grounded AI Stability (AnswerQuery)
-**What happened:** 80% failure rate when processing large application files (140k+ characters) due to "summary could not be generated" errors.
-**The Reality:** Trimming input to ~40k characters significantly improves the "Groundedness" success rate for the `AnswerQuery` API. 
+## 9. Credit-Aware Orchestration (Maximizing AI App Builder Credits)
+**What happened:** High costs were detected in the general credit pool despite using the Discovery Engine, while the $1,386 GenAI credit remained unused.
+**The Reality:** The system was "prompt stuffing"—sending the entire rulebook in the prompt context. This forced the underlying LLM to do the work using its own internal knowledge/context window (billed to general credits) instead of performing a retrieval operation from the Data Store (billed to App Builder credits).
+**The Lesson:** To maximize credits, use **Lean Prompting**. Keep the prompt focused on behavioral logic and the specific case data. Use a descriptive `query` that explicitly instructs the engine to "Search" the Data Store. This triggers the retrieval SKU and shifts the billing from the LLM to the App Builder credit pool.
+
+## 10. Build Hygiene & Deployment Stability
+**What happened:** Deployment failed with "Container import failed" due to massive image size (~27GB Artifact Registry repo) and missing runtime dependencies (`tenacity`).
+**The Reality:** 
+1. Without a `.dockerignore` file, the local `venv/` and multi-hundred-megabyte `.zip` archives were being baked into the container.
+2. Artifact Registry repositories can become cluttered and slow over time; moving to a fresh, smaller repository (`ssc-repo`) resolved the import issues.
 **The Lesson:** 
-1. **Context Trimming:** Prioritize the first 40k characters (where transcripts and CVs usually reside). 
-2. **Silent Retries:** Using the `tenacity` library to automatically retry failed AI calls (up to 3 times) masks minor transient errors and provides a smoother user experience.
-3. **Robust JSON Extraction:** LLMs occasionally add conversational "chatter" even when asked for pure JSON. Using Regex (`re.search(r'\{.*\}', text, re.DOTALL)`) is a mandatory guardrail for production parsing.
+1. **Always use `.dockerignore`**: Exclude `venv`, `.git`, and large temporary files.
+2. **Modular Repositories**: If a default deployment repository becomes unreliable or excessively large, switch to a dedicated, clean repository.
+3. **Explicit Dependencies**: Always verify `requirements.txt` against your imports before deploying.

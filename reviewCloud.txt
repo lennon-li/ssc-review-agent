@@ -1,0 +1,27 @@
+Current Analysis of ssc-review-agent Project
+Total Spend (April 17–23): ~$111.44 CAD.
+Primary Cost Driver: Direct calls to the Vertex Gemini API (specifically Gemini 3.0 Pro "Long" inputs and "Caching"). This indicates you are likely "stuffing" the full SSC rules into the Gemini prompt context window.
+Search Usage: Your billing shows $0.00 usage for "Vertex AI Search API" and "Data Indexing." This means your $1,386 credit remains 100% unused.
+Step-by-Step Conversion to Maximize Credit Usage
+To shift your costs from your general credit pool to the $1,386 GenAI App Builder credit, follow these steps:
+
+1. Stop "Prompt Stuffing" (Context Window Usage)
+The high costs for Gemini 3.0 Pro Text Input (Long) and Input Caching mean you are paying a premium to have Gemini "read" the whole document every time. This usage only consumes your $1,802 general credit.
+
+The Change: Reduce the amount of text you send in the initial prompt to Gemini.
+2. Implement the Search API (RAG)
+Your agent is already configured with a DATA_STORE_ID (ssc-rules-search_...). You must ensure your Python code is actually calling the Vertex AI Search API to find relevant information before talking to Gemini.
+
+Action: In your code, use the google-cloud-discoveryengine library to perform a search query against your data store.
+The "Credit" Benefit: Requests to the Search API are billed under the Vertex AI Search and Conversation service. This is the specific service the $1,386 credit covers.
+3. Shift Orchestration to Vertex AI Agent Builder
+If you recreate the "SSC Reviewer" as a Gemini-based Agent inside the Vertex AI Agent Builder console , the platform manages the reasoning and search logic for you.
+
+Why this works: When using the managed Agent Builder platform, the "Orchestration" and "Search" costs are bundled into the GenAI App Builder service. This allows the specialized credit to cover more of the end-to-end "Thinking" process.
+Summary Checklist for Conversion
+Strategy	Implementation	Targeted Credit
+Current (Direct)	Gemini Pro + Huge Text Context	$1,802 General Credit
+Better (Search)	Call Search API -> Send Snippets to Gemini	$1,386 GenAI Credit (Partial)
+Best (Managed)	Rebuild in Agent Builder console	$1,386 GenAI Credit (Maximum)
+Conclusion: To stop wasting your general credits, you must stop sending the full SSC rules to Gemini. Instead, use the Search API to retrieve only the relevant parts of those rules. This small change in code will shift your billing from the Gemini API to the GenAI App Builder service.
+
