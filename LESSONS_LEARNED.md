@@ -41,12 +41,9 @@ This document captures the valuable experiences, architectural decisions, and ha
 **The Reality:** The system was "prompt stuffing"—sending the entire rulebook in the prompt context. This forced the underlying LLM to do the work using its own internal knowledge/context window (billed to general credits) instead of performing a retrieval operation from the Data Store (billed to App Builder credits).
 **The Lesson:** To maximize credits, use **Lean Prompting**. Keep the prompt focused on behavioral logic and the specific case data. Use a descriptive `query` that explicitly instructs the engine to "Search" the Data Store. This triggers the retrieval SKU and shifts the billing from the LLM to the App Builder credit pool.
 
-## 10. Build Hygiene & Deployment Stability
-**What happened:** Deployment failed with "Container import failed" due to massive image size (~27GB Artifact Registry repo) and missing runtime dependencies (`tenacity`).
-**The Reality:** 
-1. Without a `.dockerignore` file, the local `venv/` and multi-hundred-megabyte `.zip` archives were being baked into the container.
-2. Artifact Registry repositories can become cluttered and slow over time; moving to a fresh, smaller repository (`ssc-repo`) resolved the import issues.
-**The Lesson:** 
-1. **Always use `.dockerignore`**: Exclude `venv`, `.git`, and large temporary files.
-2. **Modular Repositories**: If a default deployment repository becomes unreliable or excessively large, switch to a dedicated, clean repository.
-3. **Explicit Dependencies**: Always verify `requirements.txt` against your imports before deploying.
+## 11. The Grounded Generation API regionality Paradox
+**What happened:** Attempts to use the high-level `vertexai.generative_models` for Grounded Generation resulted in persistent `404 Not Found` errors for models, even when using the `global` region.
+**The Reality:** In certain project configurations, the standard Vertex AI model garden is restricted, but the **Discovery Engine** remains fully functional. 
+**The Lesson:** If `GenerativeModel` with grounding tools fails with 404s, revert to the lower-level `discoveryengine.ConversationalSearchServiceClient.answer_query`. 
+* **Regionality:** For resources in the `us` multi-region, you MUST use the `us-discoveryengine.googleapis.com` endpoint. 
+* **Precision:** This API specifically targets the **Search App (Engine)** and is the guaranteed way to consume **GenAI App Builder** promotional credits.

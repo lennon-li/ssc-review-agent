@@ -40,7 +40,8 @@ sequenceDiagram
     note over Python: Assembles "Lean Preamble" (Applicant Data + Logic + JSON Schema)
     
     Python->>Engine: AnswerQueryRequest (Lean Preamble + Search Query)
-    note right of Python: SPECIFIC SEARCH QUERY TRIGGERS APP BUILDER CREDITS
+    note right of Python: REGIONAL ENDPOINT: us-discoveryengine.googleapis.com
+    note right of Python: ENGINE ID: ssc-review-app_1776607831356
     
     Engine->>DataStore: Searches Knowledge Base (SSC Rules / Course Lists)
     DataStore-->>Engine: Returns matching text chunks from Guidelines

@@ -2,42 +2,30 @@ import json
 import re
 from typing import Dict, Any
 import os
-import vertexai
-from vertexai.generative_models import GenerativeModel, Tool, GroundingConfig, DiscoveryEngine
+from google.cloud import discoveryengine_v1 as discoveryengine
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 
 from .evaluate import BaseEvaluator
 from .config import logger
 
 class VertexEvaluator(BaseEvaluator):
-    def __init__(self, model_id: str = "gemini-1.5-pro", project_id: str = None, location: str = "us"):
+    def __init__(self, model_id: str = "stable", project_id: str = None, location: str = "us"):
         """
-        Initializes the Vertex AI Grounded Generation Evaluator.
-        Targets GenAI App Builder credits by using the DiscoveryEngine Tool.
+        Initializes the Discovery Engine Evaluator.
+        Uses AnswerQuery API to target App Builder credits.
+        Confirmed Location: 'us'
+        Confirmed Engine ID: 'ssc-review-app_1776607831356'
         """
         self.project_id = project_id or os.getenv("PROJECT_ID", "project-9486ad0d-3ebc-4395-a7c")
         self.location = location
-        self.model_id = model_id
-        # Specific Data Store ID provided for credit consumption
-        self.data_store_id = "ssc-rules-search_1776478612276_gcs_store"
+        self.engine_id = "ssc-review-app_1776607831356"
+        self.model_version = model_id
         
-        # Initialize Vertex AI
-        vertexai.init(project=self.project_id, location=self.location)
+        # Use regional endpoint as per Lessons Learned #4
+        client_options = {"api_endpoint": f"{self.location}-discoveryengine.googleapis.com"}
+        self.client = discoveryengine.ConversationalSearchServiceClient(client_options=client_options)
         
-        # Configure the Grounding Tool
-        # Format: projects/{project}/locations/{location}/collections/default_collection/dataStores/{datastore}
-        self.datastore_path = f"projects/{self.project_id}/locations/{self.location}/collections/default_collection/dataStores/{self.data_store_id}"
-        
-        self.tool = Tool.from_retrieval(
-            retrieval=vertexai.generative_models.retrieval.Retrieval(
-                vertex_ai_search=vertexai.generative_models.retrieval.VertexAISearch(
-                    datastore=self.datastore_path,
-                )
-            )
-        )
-        
-        self.model = GenerativeModel(self.model_id)
-        logger.info(f"Initialized Grounded GenerativeModel with Data Store: {self.data_store_id}")
+        logger.info(f"Initialized Discovery Engine Evaluator (Location: {self.location}, Engine: {self.engine_id})")
 
     @retry(
         stop=stop_after_attempt(3),
@@ -47,84 +35,81 @@ class VertexEvaluator(BaseEvaluator):
     )
     def evaluate(self, application_text: str, rubric: Dict[str, Any], instructions: str) -> Dict[str, Any]:
         """
-        Grounded evaluation using the Vertex AI Search Tool (Bundled Billing).
+        Grounded evaluation using AnswerQuery (Lessons Learned #3 and #5).
         """
         # Trim application text if it's excessively long
         if len(application_text) > 40000:
-            logger.info(f"Trimming application text from {len(application_text)} to 40000 chars for focus.")
+            logger.info(f"Trimming application text from {len(application_text)} to 40000 chars.")
             application_text = application_text[:40000]
+
+        serving_config = f"projects/{self.project_id}/locations/{self.location}/collections/default_collection/engines/{self.engine_id}/servingConfigs/default_serving_config"
 
         schema = {
             "applicant_id": "string",
             "overall_summary": "string",
+            "ai_recommendation": "Accept | Reject | Additional info needed",
+            "ai_flags": [
+                {"topic": "string", "reason": "string", "suggestion": "string"}
+            ],
             "ready_for_human_review": True,
             "course_checklist": [
-                {
-                    "module": "string", "course_code": "string", "title": "string",
-                    "institution": "string", "grade": "string", "status": "string",
-                    "is_satisfied": True, "note": "string"
-                }
+                {"module": "string", "course_code": "string", "is_satisfied": True}
             ],
             "criteria": [
                 {
                     "criterion_id": "string", "criterion_name": "string",
                     "recommended_rating": "string", "confidence": 0.95,
-                    "supporting_evidence": "string", "missing_evidence": "string",
-                    "needs_human_attention": False, "draft_comment": "string"
+                    "supporting_evidence": "string", "needs_human_attention": False
                 }
             ]
         }
 
-        # Focus the prompt on logic and data. 
-        # The AI will pull rules from the Data Store tool automatically.
-        prompt = (
-            "You are an expert SSC Accreditation Reviewer. Evaluate the following applicant materials against the provided rubric.\n\n"
-            "CRITICAL: Use your 'Vertex AI Search' tool to retrieve and verify the official SSC Accreditation Guidelines and University Course Lists "
-            "to ensure the applicant meets all requirements.\n\n"
-            "### APPLICANT MATERIALS\n"
-            f"{application_text}\n\n"
-            "### EVALUATION RUBRIC\n"
-            f"{json.dumps(rubric)}\n\n"
-            "### OUTPUT FORMAT\n"
-            f"Return ONLY a valid JSON object matching this schema: {json.dumps(schema)}"
+        # LESSONS LEARNED #3: Move data to preamble, keep query short.
+        preamble = (
+            "You are an expert SSC Accreditation Reviewer. Evaluate the applicant materials provided below against the guidelines in your Data Store.\n\n"
+            "### EVALUATION LOGIC\n"
+            "1. Suggest a recommendation: Accept, Reject, or Additional info needed.\n"
+            "2. Flag assumptions or uncertainties in 'ai_flags'.\n"
+            "3. Return ONLY a valid JSON object matching the requested schema.\n\n"
+            f"### APPLICANT MATERIALS\n{application_text}\n\n"
+            f"### RUBRIC\n{json.dumps(rubric)}\n\n"
+            f"### OUTPUT SCHEMA\n{json.dumps(schema)}"
         )
 
-        logger.info(f"Sending Grounded Generation request (Prompt length: {len(prompt)})")
+        query_text = "Perform a grounded evaluation of the applicant materials using the SSC guidelines and course lists from the Data Store. Output the result in the specified JSON format."
+
+        logger.info(f"Sending AnswerQuery request (Preamble: {len(preamble)} chars)")
         
         try:
-            response = self.model.generate_content(
-                prompt,
-                tools=[self.tool],
-                generation_config={
-                    "response_mime_type": "application/json",
-                }
+            request = discoveryengine.AnswerQueryRequest(
+                serving_config=serving_config,
+                query=discoveryengine.Query(text=query_text),
+                answer_generation_spec=discoveryengine.AnswerQueryRequest.AnswerGenerationSpec(
+                    model_spec=discoveryengine.AnswerQueryRequest.AnswerGenerationSpec.ModelSpec(
+                        model_version=self.model_version
+                    ),
+                    prompt_spec=discoveryengine.AnswerQueryRequest.AnswerGenerationSpec.PromptSpec(
+                        preamble=preamble
+                    ),
+                    include_citations=True
+                )
             )
             
-            answer_text = response.text
+            response = self.client.answer_query(request=request)
+            answer_text = response.answer.answer_text
             
-            if not answer_text:
-                logger.error("AI returned an empty response.")
-                raise ValueError("Empty response from Vertex AI.")
-
             # Clean up the response text to find JSON
             json_match = re.search(r'\{.*\}', answer_text, re.DOTALL)
             json_str = json_match.group(0) if json_match else answer_text
 
-            try:
-                result = json.loads(json_str)
-                # Ensure the required arrays exist
-                if "course_checklist" not in result: result["course_checklist"] = []
-                if "criteria" not in result: result["criteria"] = []
-                
-                # Log grounding metadata if available (for audit/verification)
-                if hasattr(response, 'grounding_metadata'):
-                    logger.info("Grounding metadata found. Citations used.")
-                
-                return result
-            except Exception as parse_error:
-                logger.error(f"JSON Parse Error. Raw text snippet: {answer_text[:200]}")
-                raise ValueError("Malformed JSON returned from AI.")
+            result = json.loads(json_str)
+            # Ensure the required arrays exist
+            if "course_checklist" not in result: result["course_checklist"] = []
+            if "criteria" not in result: result["criteria"] = []
+            if "ai_flags" not in result: result["ai_flags"] = []
+            
+            return result
 
         except Exception as e:
-            logger.error(f"❌ Grounded Generation Error: {e}")
+            logger.error(f"❌ AnswerQuery Error: {e}")
             raise e
